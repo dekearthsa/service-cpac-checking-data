@@ -131,6 +131,33 @@ def load_local_calibrations(conn: sqlite3.Connection) -> List[dict]:
     return [dict(row) for row in rows]
 
 
+def _normalize_mixer_for_log(m: dict) -> dict:
+    return {
+        "sideID": m.get("sideID"),
+        "mixerID": m.get("mixerID"),
+        "active": to_bool(m.get("active")),
+        "offset": parse_json_field(m.get("offset"), DEFAULT_OFFSET),
+        "setpoint": parse_json_field(m.get("setpoint"), DEFAULT_SETPOINT),
+        "updateAt": to_int(m.get("updateAt")),
+    }
+
+
+def _normalize_calibration_for_log(c: dict) -> dict:
+    return {
+        "sideID": c.get("sideID"),
+        "calibrationID": c.get("calibrationID"),
+        "active": to_bool(c.get("active")),
+        "calibration": parse_json_field(c.get("calibration"), DEFAULT_CALIBRATION),
+        "updateAt": to_int(c.get("updateAt")),
+    }
+
+
+def log_dataset(label: str, items: List[dict], normalizer) -> None:
+    print(f"[{label}] count={len(items)}")
+    for it in items:
+        print(f"  - {json.dumps(normalizer(it), ensure_ascii=False, sort_keys=True)}")
+
+
 # ── Local writers ─────────────────────────────────────────────────────────────
 
 def upsert_mixer_local(conn: sqlite3.Connection, m: dict) -> None:
@@ -350,7 +377,8 @@ def main() -> int:
         try:
             cloud_mixers = fetch_cloud_mixers()
             local_mixers = load_local_mixers(conn)
-            print(f"[mixer] cloud={len(cloud_mixers)} local={len(local_mixers)}")
+            log_dataset("mixer cloud", cloud_mixers, _normalize_mixer_for_log)
+            log_dataset("mixer local", local_mixers, _normalize_mixer_for_log)
             reconcile_mixers(conn, cloud_mixers, local_mixers)
         except Exception as exc:
             print(f"[mixer] reconcile failed: {exc}", file=sys.stderr)
@@ -358,7 +386,8 @@ def main() -> int:
         try:
             cloud_cals = fetch_cloud_calibrations()
             local_cals = load_local_calibrations(conn)
-            print(f"[calibration] cloud={len(cloud_cals)} local={len(local_cals)}")
+            log_dataset("calibration cloud", cloud_cals, _normalize_calibration_for_log)
+            log_dataset("calibration local", local_cals, _normalize_calibration_for_log)
             reconcile_calibrations(conn, cloud_cals, local_cals)
         except Exception as exc:
             print(f"[calibration] reconcile failed: {exc}", file=sys.stderr)
