@@ -1,0 +1,15 @@
+[Unit]
+Description=Run cpac-checking-data reconcile job periodically
+Requires=cpac-checking-data.service
+
+[Timer]
+# Kick off 1 minute after boot so network is up
+OnBootSec=1min
+# Then every 5 minutes from the last successful activation
+OnUnitActiveSec=5min
+AccuracySec=30s
+Unit=cpac-checking-data.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,27 @@
+[Unit]
+Description=CPAC Checking Data — reconcile local SQLite with cloud DynamoDB
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/service-cpac-checking-data
+ExecStart=/home/pi/service-cpac-checking-data/.venv/bin/python /home/pi/service-cpac-checking-data/app.py
+
+# Override these as needed for your deployment layout
+Environment=LOCAL_DB_PATH=/home/pi/service-cpac-send-iot/local_iot_data.db
+Environment=CLOUD_API_BASE_URL=https://6cq2hsx83h.execute-api.ap-southeast-1.amazonaws.com
+Environment=CPAC_SIDE_ID=cpac-riverside
+Environment=HTTP_TIMEOUT=15
+
+StandardOutput=journal
+StandardError=journal
+
+# Fail the unit (retryable by timer) when the network is flaky
+Restart=no
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
